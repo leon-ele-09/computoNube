@@ -20,7 +20,7 @@ public class Fork
     }
 
 
-    public async Task<bool> PickUpAsync(int filosofoId, int tout = 100)
+    public async Task<bool> PickUp(int filosofoId, int tout = 100)
     {
 
         bool tomado = await _semaphore.WaitAsync(tout);
@@ -117,10 +117,10 @@ public async Task comer(int id)
     try 
     {
         
-        if (!await forks[left].PickUpAsync(id)) return;
+        if (!await forks[left].PickUp(id)) return;
 
         
-        if (!await forks[right].PickUpAsync(id)) 
+        if (!await forks[right].PickUp(id)) 
         {
             forks[left].PutDown(id); 
             return;
