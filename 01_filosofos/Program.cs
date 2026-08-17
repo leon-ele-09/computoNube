@@ -8,11 +8,37 @@ Cena main = new();
 await main.start();
 
 
-public class Fork{
+public class Fork
+{
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+    
+    public int Id { get; }
 
-    public bool onUse = false;
+    public Fork(int id)
+    {
+        Id = id;
+    }
 
+
+    public async Task<bool> PickUpAsync(int filosofoId, int tout = 100)
+    {
+
+        bool tomado = await _semaphore.WaitAsync(tout);
+        if (tomado)
+        {
+            Console.WriteLine($"Tenedor {Id} tomado por Filósofo {filosofoId}");
+        }
+        return tomado;
+    }
+
+    // el tenedor se libera
+    public void PutDown(int filosofoId)
+    {
+        _semaphore.Release();
+        Console.WriteLine($"Tenedor {Id} liberado por Filósofo {filosofoId}");
+    }
 }
+
 
 
 public class Filosofo{
@@ -51,7 +77,7 @@ public class Cena{
     public Cena(){
         
         for (int i = 0; i < 5; i++){
-            forks[i] = new Fork();
+            forks[i] = new Fork(i);
             filosofos[i] = new Filosofo();
         }
             
@@ -82,46 +108,36 @@ public class Cena{
             }
         }
     }
+public async Task comer(int id)
+{
+    int left = id;
+    int right = (id + 1) % 5;
 
-     public async Task comer(int id){
+    await sem.WaitAsync();
+    try 
+    {
+        
+        if (!await forks[left].PickUpAsync(id)) return;
 
-        int left = id;
-        int right = (id+1)%5;
-
-        await sem.WaitAsync();
-
-        try
+        
+        if (!await forks[right].PickUpAsync(id)) 
         {
-            // Intentar tomar el Fork izquierdo
-            if (forks[left].onUse)
-                return;
-
-            forks[left].onUse = true;
-
-            // Intentar tomar el Fork derecho
-            if (forks[right].onUse)
-            {
-                forks[left].onUse = false;
-                return;
-            }
-
-            forks[right].onUse = true;
-
-            // Ya tiene ambos forks
-            await filosofos[id].eat(id);
-
-            // Soltar ambos forks
-            forks[left].onUse = false;
-            forks[right].onUse = false;
-        }
-        finally
-        {
-            sem.Release();
+            forks[left].PutDown(id); 
+            return;
         }
 
+        
+        await filosofos[id].eat(id);
 
-
+        
+        forks[right].PutDown(id);
+        forks[left].PutDown(id);
     }
+    finally 
+    {
+        sem.Release();
+    }
+}
 
 
 
